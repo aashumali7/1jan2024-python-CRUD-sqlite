@@ -1,31 +1,66 @@
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTableWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox, QTableWidgetItem
 import sqlite3
-import sys 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox
+import sys
 
-def submitForm(): #camelCase
+def submitForm():
     print("hello")
     name = name_edit.text()
     surname = surname_edit.text()
     age = age_edit.text()
 
-
-    # Perform further actions with the captured data
-    # For example, insert data into the database
     cursor.execute('INSERT INTO users (name, surname, age) VALUES (?, ?, ?)', (name, surname, age))
     con.commit()
 
-    # Clear the input fields
     name_edit.clear()
     surname_edit.clear()
     age_edit.clear()
 
-    # Show a popup message
     QMessageBox.information(main_window, 'Registration Successful', 'User information has been successfully registered.')
 
+def deleteUsers(row):
+    msg_box = QMessageBox()
+    msg_box.setIcon(QMessageBox.Icon.Question)
+    msg_box.setText('Do you want to Delete?')
+    msg_box.setWindowTitle('Confirmation')
+    msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    msg_box.setDefaultButton(QMessageBox.StandardButton.No)
 
-app = QApplication([]) #[] empty list passing
+    result = msg_box.exec()
 
-# Create widgets
+    if result == QMessageBox.StandardButton.Yes:
+        print('Yes button clicked')
+        # Add your code for "Yes" action here
+    else:
+        print('No button clicked or closed')
+        # Add your code for "No" action here
+
+def showDetails():
+    print('hey')
+    cursor.execute('SELECT * FROM users')
+    data = cursor.fetchall()
+
+    columns_name = ['ID', "Name", "Surname", 'Age', "Actions"]
+    table.setColumnCount(len(columns_name))
+    table.setHorizontalHeaderLabels(columns_name)
+
+    table.setRowCount(len(data))
+
+    for row_num, row_data in enumerate(data):
+        for col_num, col_data in enumerate(row_data):
+            item = QTableWidgetItem(str(col_data))
+            table.setItem(row_num, col_num, item)
+
+        delete_button = QPushButton('Delete')
+        button_layout = QVBoxLayout()
+        button_layout.addWidget(delete_button)
+        delete_button.clicked.connect(lambda _, row=row_num: deleteUsers(row))
+        table.setCellWidget(row_num, len(columns_name) - 1, delete_button)
+
+    table.show()
+    print(data)
+
+app = QApplication([])
+
 name_label = QLabel('Name:')
 name_edit = QLineEdit()
 
@@ -36,13 +71,16 @@ age_label = QLabel('Age:')
 age_edit = QLineEdit()
 
 submit_button = QPushButton('Submit')
-submit_button.clicked.connect(submitForm)#calling the function
-# Set button color to blue
+submit_button.clicked.connect(submitForm)
 submit_button.setStyleSheet("background-color: blue; color: white;")
 
-# Layout
-layout = QVBoxLayout()
+show_button = QPushButton('Show Details')
+show_button.setStyleSheet("background-color: green; color: white;")
+show_button.clicked.connect(showDetails)
 
+table = QTableWidget()
+
+layout = QVBoxLayout()
 layout.addWidget(name_label)
 layout.addWidget(name_edit)
 
@@ -53,18 +91,16 @@ layout.addWidget(age_label)
 layout.addWidget(age_edit)
 
 layout.addWidget(submit_button)
+layout.addWidget(show_button)
+layout.addWidget(table)
 
-# Create the main window
 main_window = QMainWindow()
 main_window.setWindowTitle('User Information Form')
-#main_window.setGeometry(X,  Y,   W,     H)
-main_window.setGeometry(10, 50, 300, 200)
+main_window.setGeometry(10, 50, 600, 400)
 
-# Database connection
 con = sqlite3.connect("./mydb.sqlite")
 cursor = con.cursor()
 
-# Create the 'users' table if not exists
 query = '''
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,16 +112,9 @@ query = '''
 cursor.execute(query)
 con.commit()
 
-# Clear all data in the table
-query = 'DELETE FROM users;'
-cursor.execute(query)
-con.commit()
-
-# Set up the layout in the main window
 central_widget = QWidget()
 central_widget.setLayout(layout)
 main_window.setCentralWidget(central_widget)
 
-# Show the main window
 main_window.show()
 sys.exit(app.exec())
