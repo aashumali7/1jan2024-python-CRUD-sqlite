@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTableWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox, QTableWidgetItem
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTableWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox, QTableWidgetItem, QHBoxLayout
 import sqlite3
 import sys
 
@@ -30,11 +30,31 @@ def deleteUsers(row):
     if result == QMessageBox.StandardButton.Yes:
         print('Yes button clicked')
         # Add your code for "Yes" action here
+        print(table.item(row,0).text())
+        delid = table.item(row,0).text()
+        print(type(delid))
+        # typecasting
+        delid = int(delid)
+        print(f'DELETE FROM users WHERE id ={delid}')
+        cursor.execute(f"DELETE FROM users WHERE id ={delid}")
+
+        cursor.execute(query)
+        con.commit()
+        # Clear the table
+        table.clear()
+        table.removeRow(row)
+        # Call showDetails to reload updated data
+        showDetails(row)
+
     else:
         print('No button clicked or closed')
         # Add your code for "No" action here
 
-def showDetails():
+def editUser(row):
+    QMessageBox.information(main_window, 'View User', f'Viewing details for user with ID: {table.item(row, 0).text()}')
+
+# ...
+def showDetails(row):
     print('hey')
     cursor.execute('SELECT * FROM users')
     data = cursor.fetchall()
@@ -44,20 +64,40 @@ def showDetails():
     table.setHorizontalHeaderLabels(columns_name)
 
     table.setRowCount(len(data))
-
     for row_num, row_data in enumerate(data):
+        delid = ''
         for col_num, col_data in enumerate(row_data):
             item = QTableWidgetItem(str(col_data))
             table.setItem(row_num, col_num, item)
+            if col_num == 0:
+                print(f'col data >> {col_data}')
+                delid = col_data
+                pass
 
         delete_button = QPushButton('Delete')
-        button_layout = QVBoxLayout()
+        edit_button = QPushButton('Edit')
+        button_layout = QHBoxLayout()
         button_layout.addWidget(delete_button)
+        button_layout.addWidget(edit_button)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+
         delete_button.clicked.connect(lambda _, row=row_num: deleteUsers(row))
-        table.setCellWidget(row_num, len(columns_name) - 1, delete_button)
+        edit_button.clicked.connect(lambda _, row=row_num: editUser(row))  # Connect to the editUser function
+
+        # Create a container widget and set the layout to it
+        container_widget = QWidget()
+        container_widget.setLayout(button_layout)
+       
+        # Set the background color of the delete button to red
+        delete_button.setStyleSheet("background-color: red; color: white;")
+        edit_button.setStyleSheet("background-color: purple; color: white;")
+
+        # Set the container widget as the cell widget
+        table.setCellWidget(row_num, len(columns_name) - 1, container_widget)
 
     table.show()
     print(data)
+
 
 app = QApplication([])
 
@@ -109,8 +149,6 @@ query = '''
         age INTEGER
     );
 '''
-cursor.execute(query)
-con.commit()
 
 central_widget = QWidget()
 central_widget.setLayout(layout)
